@@ -1,13 +1,10 @@
 const CACHE_NAME = 'evidence-tool-v2';
 const urlsToCache = [
   './',
-  './seo.html',
+  './index.html',
   './manifest.json',
   './icon-192.png',
-  './icon-512.png',
-  './vendor/docx-8.5.0.umd.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
+  './icon-512.png'
 ];
 
 // Install event - cache resources
@@ -54,7 +51,7 @@ self.addEventListener('fetch', function(event) {
         ).catch(function() {
           // Offline fallback for HTML pages
           if (event.request.destination === 'document') {
-            return caches.match('./seo.html');
+            return caches.match('./index.html');
           }
         });
       })

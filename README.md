@@ -1,182 +1,265 @@
-# Social Media Evidence Capture Tool
+# Social Media Evidence Capture Tool[#](#social-media-evidence-capture-tool "Copy link")
 
 A **Progressive Web App (PWA)** designed for **legal professionals**, **law enforcement**, and **digital investigators** to capture **timestamped screenshots** of social media content for **evidence collection**, **legal documentation**, and **police reports**.
 
-## 🚀 Features
+## 🚀 Features[#](#🚀-features "Copy link")
 
-### 📱 **Cross-Platform Evidence Capture**
-- **Desktop screenshots** with automatic timestamp overlay
-- **Android file upload** support for mobile evidence collection
-- **Cross-browser compatibility** (Chrome, Firefox, Safari, Edge)
-- **Responsive design** optimized for all devices
+### 📱 **Cross-Platform Evidence Capture**[#](#📱-cross-platform-evidence-capture "Copy link")
 
-### ⚖️ **Legal-Grade Documentation**
-- **Automatic timestamp generation** for evidence validity
-- **PDF export** with metadata preservation
-- **Incident history tracking** with detailed records
-- **Court-admissible** screenshot format
+-   **Desktop screenshots** with automatic timestamp overlay
+-   **Android file upload** support for mobile evidence collection
+-   **Cross-browser compatibility** (Chrome, Firefox, Safari, Edge)
+-   **Responsive design** optimized for all devices
 
-### 🌐 **PWA Capabilities**
-- **Offline functionality** - Works without internet connection
-- **Install as native app** on Android devices
-- **Fast loading** with service worker caching
-- **Home screen integration** with custom icons
+### ⚖️ **Legal-Grade Documentation**[#](#⚖️-legal-grade-documentation "Copy link")
 
-### 🔒 **Professional Features**
-- **Secure local storage** - No data sent to external servers
-- **Evidence integrity** protection
-- **Professional UI** designed for legal workflows
-- **Batch processing** capabilities
+-   **Automatic timestamp generation** for evidence validity
+-   **PDF export** with metadata preservation
+-   **Incident history tracking** with detailed records
+-   **Court-admissible** screenshot format
 
-## 🛠️ **Technology Stack**
+### 🌐 **PWA Capabilities**[#](#🌐-pwa-capabilities "Copy link")
 
-- **HTML5** - Modern semantic markup
-- **CSS3** - Responsive design with mobile-first approach
-- **Vanilla JavaScript** - No external dependencies for core functionality
-- **PWA Technologies** - Service Worker, Web App Manifest
-- **jsPDF Library** - Professional PDF generation
-- **Font Awesome** - Professional iconography
+-   **Offline functionality** - Works without internet connection
+-   **Install as native app** on Android devices
+-   **Fast loading** with service worker caching
+-   **Home screen integration** with custom icons
 
-## 📋 **Installation & Setup**
+### 🔒 **Professional Features**[#](#🔒-professional-features "Copy link")
 
-### **Method 1: Netlify Deployment (Recommended)**
-1. Go to [Netlify Drop](https://app.netlify.com/drop)
-2. Upload these required files:
-   - `seo.html`
-   - `manifest.json`
-   - `sw.js`
-   - `icon-192.png`
-   - `icon-512.png`
-3. Your PWA will be live instantly
+-   **Secure local storage** - No data sent to external servers
+-   **Evidence integrity** protection
+-   **Professional UI** designed for legal workflows
+-   **Batch processing** capabilities
 
-### **Method 2: Local Development**
+## 🛠️ **Technology Stack**[#](#🛠️-technology-stack "Copy link")
+
+-   **HTML5** - Modern semantic markup with SEO optimization
+-   **CSS3** - Custom responsive design with mobile-first approach
+-   **Vanilla JavaScript** - Core functionality without frameworks
+-   **PWA Technologies** - Service Worker, Web App Manifest for offline functionality
+-   **jsPDF Library** - Professional PDF generation (CDN)
+-   **DOCX.js Library** - Word document export functionality (local + CDN fallback)
+-   **Font Awesome 6.4.0** - Professional iconography (CDN)
+-   **Canvas API** - Screenshot capture and timestamp overlay
+-   **Local Storage API** - Secure evidence data persistence
+
+## 📋 **Installation & Setup**[#](#📋-installation-setup "Copy link")
+
+### **🌐 Quick Start - Use Online (Easiest)**[#](#🌐-quick-start-use-online-easiest "Copy link")
+
+1.  Visit the live demo site: [Social Media Evidence Capture Tool](https://social-media-evidence-tool.vercel.app/)
+2.  Start capturing screenshots immediately
+3.  No installation required!
+
+### **📱 Install on Your Phone (Android)**[#](#📱-install-on-your-phone-android "Copy link")
+
+1.  Open the app in **Chrome browser**
+2.  Look for the **“Add to Home Screen”** notification
+3.  Tap **“Add to Home Screen”** and confirm
+4.  The app will appear on your phone’s home screen
+
+### **💻 Install on Your Computer**[#](#💻-install-on-your-computer "Copy link")
+
+**Option A: Git Clone (Recommended)**
 ```bash
-# Clone or download the project files
-# Start local server
+# Clone the repository
+git clone https://github.com/dummyAIserver/Social-Media-Evidence-Capture-Tool.git
+
+# Navigate to the project folder
+cd Social-Media-Evidence-Capture-Tool
+
+# Double-click seo.html to open in your browser
+# Or start a local server (see Option C)
+```
+
+**Option B: Download Files**
+1.  Download all project files to your computer
+2.  Double-click `seo.html` to open in your browser
+3.  Start using the tool immediately
+
+**Option C: Local Server (Advanced)**
+
+bash
+
+Copy
+
+```bash
+# If you have Python installed:
 python -m http.server 8000
-# Or use Node.js
+
+# If you have Node.js installed:
 npx http-server -p 8000
 
-# Access at http://localhost:8000/seo.html
+# Then visit: http://localhost:8000/seo.html
 ```
 
-### **Method 3: Android Testing**
-```bash
-# Use ngrok for mobile testing
-ngrok http 8000
-# Test the HTTPS URL on your Android device
-```
+### **🔧 For Testing on Mobile**[#](#🔧-for-testing-on-mobile "Copy link")
 
-## 📱 **PWA Installation on Android**
+If you want to test the app on your phone while developing:
 
-1. Open the app in **Chrome browser**
-2. Wait for **"Add to Home Screen"** prompt
-3. Tap **"Add to Home Screen"**
-4. Confirm installation
-5. App appears on home screen with custom icon
+1.  Install ngrok: `npm install -g ngrok`
+2.  Run: `ngrok http 8000`
+3.  Use the provided HTTPS URL on your mobile device
 
-## 🔧 **Configuration**
+## � **How to Use**[#](#📖-how-to-use "Copy link")
 
-### **Service Worker (sw.js)**
-- Caches essential files for offline access
-- Automatic background sync when online
-- Cache management for optimal performance
+### **🚀 Quick Start Guide**
 
-### **Web App Manifest (manifest.json)**
-- App metadata and branding
-- Icon definitions for multiple sizes
-- PWA installation preferences
-- Share Target API configuration
+### **Step 1: Enter Social Media URL**
+1. Copy the URL of the social media post you want to capture
+2. Paste it in the "Social Media Post URL" field
+3. The app will automatically detect the platform (Instagram, TikTok, Facebook, etc.)
 
-## 🎯 **Use Cases**
+### **Step 2: Add Description**
+1. In the "What happened?" field, describe the issue
+2. Examples: "Death threat in comments", "Harassment DM", "Hate speech post", "Scam promotion"
+3. This description will be included in your evidence
 
-### **👮 Law Enforcement**
-- **Social media evidence** collection
-- **Digital evidence** documentation
-- **Investigation reporting** with timestamps
-- **Chain of custody** maintenance
+### **Step 3: Capture Evidence**
+1. Click the **"📸 Capture Evidence"** button
+2. **You need to take the screenshot manually** using your keyboard:
+   - **Windows**: Press `Win + Shift + S` or `PrtScn`
+   - **Mac**: Press `Cmd + Shift + 4` or `Cmd + Shift + 3`
+3. **The app will automatically detect your screenshot** and add it to the report
+4. Platform detection and timestamp will be automatically added to your evidence
 
-### **⚖️ Legal Professionals**
-- **Court evidence** preparation
-- **Case documentation** with screenshots
-- **Client evidence** organization
-- **Legal research** archiving
+**Note**: The app cannot take screenshots automatically - you must capture the screen yourself, and the app will handle the rest!
 
-### **🔍 Digital Investigators**
-- **Online evidence** gathering
-- **Social media monitoring**
-- **Digital forensics** support
-- **Incident documentation**
+### **Step 4: Download & Export**
+Choose your preferred format:
+- **📄 Download as PNG** - High-quality screenshot
+- **📋 Download as PDF** - Professional document format
+- **📝 Export to DOCX** - Word document for legal reports
 
-## 🌍 **SEO Keywords & Discovery**
+### **Step 5: Save to History**
+1. Click **"➕ Add to Incident History"** to save the evidence
+2. View all saved evidence in the "📋 Incident History" section
+3. Export complete history as PDF or DOCX for legal documentation
 
-This tool is optimized for search terms related to:
-- **Social media evidence capture**
-- **Legal screenshot tool**
-- **Digital evidence collection**
-- **Police report generator**
-- **Timestamp screenshot app**
-- **PWA evidence tool**
-- **Mobile evidence capture**
-- **Legal documentation software**
-- **Court evidence preparation**
-- **Digital forensics tool**
+### **🎯 Pro Tips**
 
-## 📊 **Technical Specifications**
+- **Platform Detection**: The app automatically detects Instagram, TikTok, Facebook, X (Twitter), WhatsApp, Telegram, and more
+- **Timestamp Accuracy**: All screenshots include precise timestamp for legal validity
+- **Offline Mode**: Works without internet connection after initial load
+- **Mobile Installation**: Install as PWA on Android for quick access
+- **Data Privacy**: All evidence is stored locally on your device
 
-### **Browser Compatibility**
-- ✅ Chrome 80+ (Recommended)
-- ✅ Firefox 75+
-- ✅ Safari 13+
-- ✅ Edge 80+
+### **⚠️ Important Notes**
 
-### **Mobile Support**
-- ✅ Android 8+ (Full PWA support)
-- ✅ iOS 13+ (Limited PWA support)
-- ✅ Responsive design for all screen sizes
+- Screenshots capture the visible portion of the webpage
+- Ensure the content is fully visible before capturing
+- Description field helps organize evidence for legal purposes
+- Timestamp cannot be modified after capture for evidence integrity
 
-### **Performance Metrics**
-- ⚡ **First Contentful Paint:** <1.5s
-- 📦 **Bundle Size:** <50KB (gzipped)
-- 🔄 **Offline Support:** Full functionality
-- 📱 **PWA Score:** 95+ (Lighthouse)
+## �� **PWA Installation on Android**[#](#📱-pwa-installation-on-android "Copy link")
 
-## 🔒 **Security & Privacy**
+1.  Open the app in **Chrome browser**
+2.  Wait for **“Add to Home Screen”** prompt
+3.  Tap **“Add to Home Screen”**
+4.  Confirm installation
+5.  App appears on home screen with custom icon
 
-- **Local storage only** - No external data transmission
-- **No tracking** or analytics
-- **Secure PDF generation** with metadata
-- **Privacy-first** design approach
-- **GDPR compliant** data handling
+## 🔧 **Configuration**[#](#🔧-configuration "Copy link")
 
-## 📈 **Benefits**
+### **Service Worker (sw.js)**[#](#service-worker-swjs "Copy link")
 
-### **For Legal Teams**
-- ⏰ **Save time** with automated timestamping
-- 📋 **Standardized** evidence collection
-- 🔒 **Secure** local data storage
-- 📱 **Mobile-friendly** field work
+-   Caches essential files for offline access
+-   Automatic background sync when online
+-   Cache management for optimal performance
 
-### **For Law Enforcement**
-- 🚔 **In-field** evidence collection
-- 📸 **Professional** documentation
-- 🗂️ **Organized** case management
-- ⚖️ **Court-ready** evidence format
+### **Web App Manifest (manifest.json)**[#](#web-app-manifest-manifestjson "Copy link")
 
-### **For Investigators**
-- 🔍 **Efficient** evidence gathering
-- 📊 **Comprehensive** documentation
-- 🌐 **Cross-platform** compatibility
-- 💾 **Reliable** offline operation
+-   App metadata and branding
+-   Icon definitions for multiple sizes
+-   PWA installation preferences
+-   Share Target API configuration
 
-## 🤝 **Contributing**
+## 🎯 **Use Cases**[#](#🎯-use-cases "Copy link")
+
+### **👮 Law Enforcement**[#](#👮-law-enforcement "Copy link")
+
+-   **Social media evidence** collection
+-   **Digital evidence** documentation
+-   **Investigation reporting** with timestamps
+-   **Chain of custody** maintenance
+
+### **⚖️ Legal Professionals**[#](#⚖️-legal-professionals "Copy link")
+
+-   **Court evidence** preparation
+-   **Case documentation** with screenshots
+-   **Client evidence** organization
+-   **Legal research** archiving
+
+### **🔍 Digital Investigators**[#](#🔍-digital-investigators "Copy link")
+
+-   **Online evidence** gathering
+-   **Social media monitoring**
+-   **Digital forensics** support
+-   **Incident documentation**
+
+## 📊 **Technical Specifications**[#](#📊-technical-specifications "Copy link")
+
+### **Browser Compatibility**[#](#browser-compatibility "Copy link")
+
+-   ✅ Chrome 80+ (Recommended)
+-   ✅ Firefox 75+
+-   ✅ Safari 13+
+-   ✅ Edge 80+
+
+### **Mobile Support**[#](#mobile-support "Copy link")
+
+-   ✅ Android 8+ (Full PWA support)
+-   ✅ iOS 13+ (Limited PWA support)
+-   ✅ Responsive design for all screen sizes
+
+### **Performance Metrics**[#](#performance-metrics "Copy link")
+
+-   ⚡ **First Contentful Paint:** <1.5s
+-   📦 **Bundle Size:** <50KB (gzipped)
+-   🔄 **Offline Support:** Full functionality
+-   📱 **PWA Score:** 95+ (Lighthouse)
+
+## 🔒 **Security & Privacy**[#](#🔒-security-privacy "Copy link")
+
+-   **Local storage only** - No external data transmission
+-   **No tracking** or analytics
+-   **Secure PDF generation** with metadata
+-   **Privacy-first** design approach
+-   **GDPR compliant** data handling
+
+## 📈 **Benefits**[#](#📈-benefits "Copy link")
+
+### **For Legal Teams**[#](#for-legal-teams "Copy link")
+
+-   ⏰ **Save time** with automated timestamping
+-   📋 **Standardized** evidence collection
+-   🔒 **Secure** local data storage
+-   📱 **Mobile-friendly** field work
+
+### **For Law Enforcement**[#](#for-law-enforcement "Copy link")
+
+-   🚔 **In-field** evidence collection
+-   📸 **Professional** documentation
+-   🗂️ **Organized** case management
+-   ⚖️ **Court-ready** evidence format
+
+### **For Investigators**[#](#for-investigators "Copy link")
+
+-   🔍 **Efficient** evidence gathering
+-   📊 **Comprehensive** documentation
+-   🌐 **Cross-platform** compatibility
+-   💾 **Reliable** offline operation
+
+## 🤝 **Contributing**[#](#🤝-contributing "Copy link")
 
 This project is designed for **legal professionals** and **digital evidence** specialists. Contributions welcome for:
-- **New platform support**
-- **Additional export formats**
-- **UI/UX improvements**
-- **Security enhancements**
 
-## 📄 **Disclaimer**
+-   **New platform support**
+-   **Additional export formats**
+-   **UI/UX improvements**
+-   **Security enhancements**
+
+## 📄 **Disclaimer**[#](#📄-disclaimer "Copy link")
 
 This tool is provided for **legal evidence collection** and **professional use**. Please ensure compliance with local laws and regulations regarding digital evidence collection.

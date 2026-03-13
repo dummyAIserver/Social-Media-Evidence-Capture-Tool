@@ -2,7 +2,7 @@
   "name": "Social Media Evidence Capture Tool",
   "short_name": "Evidence Tool",
   "description": "Capture timestamped screenshots of social media posts for legal evidence and police reports",
-  "start_url": "./seo.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#667eea",
@@ -29,8 +29,22 @@
       "name": "New Evidence",
       "short_name": "New",
       "description": "Quick capture new evidence",
-      "url": "./seo.html?action=new",
-      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+"url": "./index.html?action=new",
+      "icons": [{ "src": "icon-96.png", "sizes": "96x96" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "screenshot-mobile.png", 
+      "sizes": "375x667",
+      "type": "image/png",
+      "form_factor": "narrow"
     }
   ]
 }

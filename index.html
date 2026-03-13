@@ -10,26 +10,15 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Evidence Tool">
     <meta name="application-name" content="Evidence Tool">
-    <meta name="msapplication-TileColor" content="#667eea">
-    <meta name="msapplication-config" content="browserconfig.xml">
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="./manifest.json">
     
     <!-- Apple Touch Icons -->
-    <link rel="apple-touch-icon" sizes="72x72" href="./icon-72.png">
-    <link rel="apple-touch-icon" sizes="96x96" href="./icon-96.png">
-    <link rel="apple-touch-icon" sizes="128x128" href="./icon-128.png">
-    <link rel="apple-touch-icon" sizes="144x144" href="./icon-144.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="./icon-152.png">
     <link rel="apple-touch-icon" sizes="192x192" href="./icon-192.png">
-    <link rel="apple-touch-icon" sizes="384x384" href="./icon-384.png">
-    <link rel="apple-touch-icon" sizes="512x512" href="./icon-512.png">
     
     <!-- Standard Icons -->
-    <link rel="icon" type="image/png" sizes="32x32" href="./icon-32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="./icon-16.png">
-    <link rel="shortcut icon" href="./favicon.ico">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
     
     <title>Social Media Evidence Capture Tool | Screenshot for Legal Proof</title>
     
@@ -67,7 +56,14 @@
     <meta name="twitter:image" content="https://yourdomain.com/preview.png">
     
     <link rel="icon" href="/favicon.ico">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- DOCX export (local first; CDN fallback) -->
+    <script src="./vendor/docx-8.5.0.umd.js"></script>
+    <script>
+        // Fallback if local bundle fails to load
+        if (typeof docx === 'undefined') {
+            document.write('<script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"><\/script>');
+        }
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -577,6 +573,181 @@
                 toast.classList.remove('show', type);
             }, duration);
         }
+        
+        // Helper function to wrap text on canvas
+        function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+            const words = text.split(' ');
+            let line = '';
+            let currentY = y;
+            
+            for (let n = 0; n < words.length; n++) {
+                const testLine = line + words[n] + ' ';
+                const metrics = ctx.measureText(testLine);
+                const testWidth = metrics.width;
+                
+                if (testWidth > maxWidth && n > 0) {
+                    ctx.fillText(line, x, currentY);
+                    line = words[n] + ' ';
+                    currentY += lineHeight;
+                } else {
+                    line = testLine;
+                }
+            }
+            ctx.fillText(line, x, currentY);
+            return currentY + lineHeight; // Return next Y position
+        }
+
+        function wrapTextToLines(ctx, text, maxWidth) {
+            if (!text) return [''];
+            const words = String(text).split(' ');
+            const lines = [];
+            let line = '';
+
+            const pushLine = (l) => {
+                const trimmed = l.trimEnd();
+                if (trimmed.length > 0) lines.push(trimmed);
+            };
+
+            for (let i = 0; i < words.length; i++) {
+                const word = words[i];
+                const test = line.length ? (line + word + ' ') : (word + ' ');
+                if (ctx.measureText(test).width <= maxWidth) {
+                    line = test;
+                    continue;
+                }
+
+                // If single word is too long (e.g., long URL), split by characters.
+                if (!line.length && ctx.measureText(word).width > maxWidth) {
+                    let chunk = '';
+                    for (const ch of word) {
+                        const testChunk = chunk + ch;
+                        if (ctx.measureText(testChunk).width > maxWidth && chunk.length) {
+                            lines.push(chunk);
+                            chunk = ch;
+                        } else {
+                            chunk = testChunk;
+                        }
+                    }
+                    if (chunk.length) lines.push(chunk);
+                    line = '';
+                } else {
+                    pushLine(line);
+                    line = word + ' ';
+                }
+            }
+            pushLine(line);
+            return lines.length ? lines : [''];
+        }
+
+        function insertSoftBreaks(text, every = 30) {
+            if (!text) return '';
+            const str = String(text);
+            // Insert zero-width spaces so Word can wrap long URLs/strings.
+            let out = '';
+            let run = '';
+            const flushRun = () => {
+                if (!run) return;
+                if (run.length <= every) {
+                    out += run;
+                } else {
+                    for (let i = 0; i < run.length; i += every) {
+                        out += run.slice(i, i + every) + '\u200B';
+                    }
+                }
+                run = '';
+            };
+
+            for (let i = 0; i < str.length; i++) {
+                const ch = str[i];
+                if (ch === ' ' || ch === '\n' || ch === '\t') {
+                    flushRun();
+                    out += ch;
+                } else {
+                    run += ch;
+                }
+            }
+            flushRun();
+            return out;
+        }
+
+        function buildEvidenceReportCanvas(screenshotCanvas, meta) {
+            const width = screenshotCanvas.width;
+            const shotHeight = screenshotCanvas.height;
+
+            const padX = 30;
+            const padY = 22;
+            const innerPad = 20;
+            const gap = 18;
+            const maxTextWidth = width - (padX * 2) - (innerPad * 2);
+            const lineHeight = 22;
+
+            // Measure required header height using a measuring context.
+            const measureCanvas = document.createElement('canvas');
+            const mctx = measureCanvas.getContext('2d');
+            mctx.font = '18px monospace';
+
+            const titleHeight = 34;
+            const platformLines = 1;
+            const typeLines = 1;
+            const capturedLines = 1;
+            const urlLines = wrapTextToLines(mctx, `URL: ${meta.url}`, maxTextWidth).length;
+            const descLines = wrapTextToLines(mctx, `Description: ${meta.description || 'N/A'}`, maxTextWidth).length;
+            const bodyLines = platformLines + typeLines + urlLines + descLines + capturedLines;
+            const bodyHeight = bodyLines * lineHeight + 10;
+            const headerHeight = padY + innerPad + titleHeight + bodyHeight + innerPad;
+
+            const reportCanvas = document.createElement('canvas');
+            reportCanvas.width = width;
+            reportCanvas.height = headerHeight + gap + shotHeight + padY;
+
+            const ctx = reportCanvas.getContext('2d');
+
+            // Page background
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, reportCanvas.width, reportCanvas.height);
+
+            // Header panel
+            ctx.fillStyle = 'rgba(0,0,0,0.95)';
+            ctx.fillRect(padX, padY, width - padX * 2, headerHeight - padY);
+
+            // Title
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'left';
+            ctx.font = 'bold 24px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            ctx.fillText(
+                `INCIDENT REPORT - ${new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}`,
+                padX + innerPad,
+                padY + innerPad + 26
+            );
+
+            // Body text
+            ctx.font = '18px monospace';
+            let y = padY + innerPad + titleHeight + 10;
+            ctx.fillText(`Platform: ${meta.platform.toUpperCase()}`, padX + innerPad, y);
+            y += lineHeight;
+            ctx.fillText(`Type: ${meta.type}`, padX + innerPad, y);
+            y += lineHeight;
+
+            // Wrapped URL/Description
+            const urlLinesArr = wrapTextToLines(ctx, `URL: ${meta.url}`, maxTextWidth);
+            for (const l of urlLinesArr) {
+                ctx.fillText(l, padX + innerPad, y);
+                y += lineHeight;
+            }
+
+            const descLinesArr = wrapTextToLines(ctx, `Description: ${meta.description || 'N/A'}`, maxTextWidth);
+            for (const l of descLinesArr) {
+                ctx.fillText(l, padX + innerPad, y);
+                y += lineHeight;
+            }
+
+            ctx.fillText(`Captured: ${meta.timestamp}`, padX + innerPad, y);
+
+            // Screenshot below header (no overlap)
+            ctx.drawImage(screenshotCanvas, 0, headerHeight + gap);
+
+            return reportCanvas;
+        }
         const platformIcons = {
             'instagram': '<i class="fab fa-instagram"></i> Instagram',
             'tiktok': '<i class="fab fa-tiktok"></i> TikTok', 
@@ -589,8 +760,22 @@
             'linkedin': '<i class="fab fa-linkedin"></i> LinkedIn',
             'snapchat': '<i class="fab fa-snapchat"></i> Snapchat',
             'youtube': '<i class="fab fa-youtube"></i> YouTube',
-            'twitch': '<i class="fab fa-twitch"></i> Twitch'
+            'twitch': '<i class="fab fa-twitch"></i> Twitch',
+            'wikipedia': '<i class="fab fa-wikipedia-w"></i> Wikipedia',
+            'github': '<i class="fab fa-github"></i> GitHub',
+            'medium': '<i class="fab fa-medium"></i> Medium',
+            'quora': '<i class="fab fa-quora"></i> Quora',
+            'pinterest': '<i class="fab fa-pinterest"></i> Pinterest'
         };
+
+        function platformIconOnlyHtml(platform) {
+            const html = platformIcons[platform];
+            if (html) {
+                const match = html.match(/<i[^>]*><\/i>/i);
+                if (match && match[0]) return match[0];
+            }
+            return '<i class="fas fa-link"></i>';
+        }
         
         // Auto-detect platform on URL input
         document.getElementById('url').addEventListener('input', function(e) {
@@ -617,39 +802,89 @@
             
             const patterns = {
                 instagram: {
-                    regex: /instagram\.com\/(p|reel|tv|username)\/[^\/]+/,
-                    type: 'Post/Profile',
+                    regex: /(?:www\.)?instagram\.com\/(?:(p|reel|tv)\/[^\/]+|stories\/[^\/]+\/\d+|[^\/?#]+)(?:[\/?#]|$)/i,
+                    type: 'Post/Profile/Story',
                     platform: 'instagram'
                 },
                 tiktok: {
-                    regex: /tiktok\.com\/(@[^\/]+\/video\/\d+|v\/\d+)/,
-                    type: 'Video/Profile', 
+                    regex: /(?:www\.)?tiktok\.com\/(?:@[^\/]+(?:\/video\/\d+)?|t\/[A-Za-z0-9]+|v\/\d+)(?:[\/?#]|$)/i,
+                    type: 'Video/Profile',
                     platform: 'tiktok'
                 },
                 facebook: {
-                    regex: /facebook\.com\/(?:groups|pages|profile|posts|p)\/[^\/]+/,
+                    regex: /(?:www\.)?facebook\.com\/(?:groups\/[^\/]+|[^\/]+\/posts\/\d+|reel\/\d+|watch\/\?v=\d+|share\/[A-Za-z0-9]+|[^\/?#]+)(?:[\/?#]|$)/i,
                     type: 'Post/Profile',
                     platform: 'facebook'
                 },
                 twitter: {
-                    regex: /(?:twitter|x)\.com\/[^\/]+\/status\/\d+/,
+                    regex: /(?:www\.)?(?:twitter|x)\.com\/[^\/]+\/status\/\d+(?:[\/?#]|$)/i,
                     type: 'Post/Profile',
                     platform: 'twitter'
                 },
                 whatsapp: {
-                    regex: /web\.whatsapp\.com/,
-                    type: 'Web Chat',
+                    regex: /(?:web\.)?whatsapp\.com\/(?:chat|send|channel|status|)(?:[\/?#]|$)/i,
+                    type: 'Chat/Channel',
                     platform: 'whatsapp'
                 },
                 telegram: {
-                    regex: /t\.me\/[^\/]+/,
-                    type: 'Chat/Post',
+                    regex: /(?:t\.me|telegram\.me|telegram\.dog)\/[^\/?#]+(?:\/\d+)?(?:[\/?#]|$)/i,
+                    type: 'Channel/Post',
                     platform: 'telegram'
                 },
                 reddit: {
-                    regex: /reddit\.com\/r\/[^\/]+\/comments\/\w+/,
-                    type: 'Post/Comment',
+                    regex: /(?:www\.)?reddit\.com\/(?:r\/[^\/]+\/comments\/[A-Za-z0-9]+|user\/[^\/]+|u\/[^\/]+)(?:[\/?#]|$)/i,
+                    type: 'Post/Comment/Profile',
                     platform: 'reddit'
+                },
+                youtube: {
+                    regex: /(?:www\.)?(?:youtube\.com\/(?:watch\?v=[^&]+|shorts\/[^\/?#]+|live\/[^\/?#]+|channel\/[^\/?#]+|@[^\/?#]+)|youtu\.be\/[^\/?#]+)(?:[\/?#]|$)/i,
+                    type: 'Video/Channel',
+                    platform: 'youtube'
+                },
+                linkedin: {
+                    regex: /(?:www\.)?linkedin\.com\/(?:in\/[^\/?#]+|company\/[^\/?#]+|posts\/[^\/?#]+|feed\/update\/[^\/?#]+)(?:[\/?#]|$)/i,
+                    type: 'Post/Profile',
+                    platform: 'linkedin'
+                },
+                discord: {
+                    regex: /(?:discord\.com\/(?:channels\/\d+\/\d+|invite\/[A-Za-z0-9]+)|discord\.gg\/[A-Za-z0-9]+)(?:[\/?#]|$)/i,
+                    type: 'Invite/Channel',
+                    platform: 'discord'
+                },
+                snapchat: {
+                    regex: /(?:www\.)?snapchat\.com\/(?:add\/[^\/?#]+|p\/[^\/?#]+|discover\/[^\/?#]+)(?:[\/?#]|$)/i,
+                    type: 'Profile/Story',
+                    platform: 'snapchat'
+                },
+                twitch: {
+                    regex: /(?:www\.)?twitch\.tv\/[^\/?#]+(?:\/clip\/[^\/?#]+|\/videos\/\d+)?(?:[\/?#]|$)/i,
+                    type: 'Channel/Clip/Video',
+                    platform: 'twitch'
+                },
+                wikipedia: {
+                    regex: /(?:[a-z]{2,3}\.)?wikipedia\.org\/wiki\/[^\/?#]+(?:[\/?#]|$)/i,
+                    type: 'Article',
+                    platform: 'wikipedia'
+                },
+                github: {
+                    regex: /(?:www\.)?github\.com\/(?:[^\/?#]+(?:\/[^\/?#]+){0,2})(?:[\/?#]|$)/i,
+                    type: 'Repo/Profile/Issue',
+                    platform: 'github'
+                },
+                medium: {
+                    regex: /(?:www\.)?medium\.com\/(?:@[^\/?#]+\/[^\/?#]+|[^\/?#]+\/[^\/?#]+)(?:[\/?#]|$)/i,
+                    type: 'Article/Profile',
+                    platform: 'medium'
+                },
+                quora: {
+                    regex: /(?:www\.)?quora\.com\/(?:profile\/[^\/?#]+|[^\/?#]+)(?:[\/?#]|$)/i,
+                    type: 'Question/Profile',
+                    platform: 'quora'
+                },
+                pinterest: {
+                    regex: /(?:www\.)?pinterest\.(?:com|co\.uk|de|fr|in)\/(?:pin\/\d+|[^\/?#]+\/)(?:[\/?#]|$)/i,
+                    type: 'Pin/Profile',
+                    platform: 'pinterest'
                 }
             };
             
@@ -725,24 +960,9 @@
                     // failure sampling; continue anyway
                 }
                 
-                // Smart overlay with platform detection
+                // Keep screenshot as-is (no metadata overlay on image)
                 const timestamp = new Date().toISOString();
                 const detection = detectPlatform(url);
-                
-                // Evidence header background
-                ctx.fillStyle = 'rgba(0,0,0,0.95)';
-                ctx.fillRect(30, 30, canvas.width - 60, 140);
-                
-                ctx.fillStyle = 'white';
-                ctx.font = 'bold 24px -apple-system, sans-serif';
-                ctx.textAlign = 'left';
-                ctx.fillText(`INCIDENT REPORT - ${new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}`, 50, 65);
-                
-                ctx.font = '18px monospace';
-                ctx.fillText(`Platform: ${detection.platform.toUpperCase()}`, 50, 95);
-                ctx.fillText(`URL: ${url}`, 50, 115);
-                ctx.fillText(`Captured: ${timestamp}`, 50, 135);
-                ctx.fillText(`Description: ${description}`, 50, 155);
                 
                 currentEvidence = {
                     canvas: canvas,
@@ -806,29 +1026,16 @@
                 if (!pngData) throw new Error('Failed to generate PNG data');
                 const pngLink = createDownloadLink(pngData, `${filename}.png`);
                 
-                // PDF
-                const { jsPDF } = window.jspdf;
-                if (!jsPDF) throw new Error('PDF library not loaded');
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const imgData = canvas.toDataURL('image/png');
-                const imgProps = pdf.getImageProperties(imgData);
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-                
-                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-                const pdfBlob = pdf.output('blob');
-                const pdfUrl = URL.createObjectURL(pdfBlob);
-                
                 document.getElementById('download-links').innerHTML = `
                     <p><strong>Downloads ready:</strong></p>
                     <a href="${pngData}" download="${filename}.png" class="download-btn">
                         📱 PNG Screenshot
                     </a>
-                    <a href="${pdfUrl}" download="${filename}.pdf" class="download-btn">
-                        📄 PDF Evidence Packet
-                    </a>
+                    <button class="download-btn" style="border: none; cursor: pointer;" onclick="exportCurrentEvidenceDocx()">
+                        📝 DOCX Report
+                    </button>
                     <p class="timestamp">
-                        <i class="fab fa-${currentEvidence.platform}"></i>
+                        ${platformIconOnlyHtml(currentEvidence.platform)}
                         ${currentEvidence.platform.toUpperCase()} • ${currentEvidence.detection}
                     </p>
                 `;
@@ -920,7 +1127,7 @@
                         <div class="incident-header">
                             <div>
                                 <div class="incident-platform">
-                                    <i class="fab fa-${incident.platform}"></i>
+                                    ${platformIconOnlyHtml(incident.platform)}
                                     ${incident.platform.toUpperCase()}
                                 </div>
                                 <h4>${incident.description.substring(0, 60)}${incident.description.length > 60 ? '...' : ''}</h4>
@@ -929,8 +1136,8 @@
                             <div class="incident-date">${incident.date}</div>
                         </div>
                         <div style="display: flex; gap: 10px; margin-top: 15px;">
-                            <button class="btn" style="padding: 8px 16px; font-size: 14px;" onclick="exportIncident('${incident.id}')">
-                                <i class="fas fa-download"></i> Export
+                            <button class="btn" style="padding: 8px 16px; font-size: 14px; background: linear-gradient(135deg, #2b579a, #1e3f6f);" onclick="exportIncidentDocx('${incident.id}')">
+                                <i class="fas fa-file-word"></i> Export DOCX
                             </button>
                             <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;" onclick="deleteIncident('${incident.id}')">
                                 <i class="fas fa-trash"></i>
@@ -941,56 +1148,227 @@
             `;
         }
         
-        function exportIncident(id) {
+        async function exportIncidentDocx(id) {
             try {
                 const incident = incidents.find(i => i.id === id);
                 if (!incident) throw new Error('Incident not found');
-                const { jsPDF } = window.jspdf;
-                if (!jsPDF) throw new Error('PDF library not available');
-                const pdf = new jsPDF();
+                if (typeof docx === 'undefined') throw new Error('DOCX library failed to load. Please refresh and try again.');
+                
+                const { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, Packer, ImageRun } = docx;
+                
+                const children = [
+                    new Paragraph({
+                        children: [
+                            new TextRun({
+                                text: 'INCIDENT REPORT',
+                                bold: true,
+                                color: '000000',
+                                size: 32,
+                                font: 'Times New Roman'
+                            })
+                        ],
+                        alignment: AlignmentType.CENTER,
+                        spacing: { after: 420 }
+                    }),
+                    new Paragraph({
+                        children: [
+                            new TextRun({ text: 'Platform: ', bold: true, font: 'Times New Roman' }),
+                            new TextRun({ text: incident.platform.toUpperCase(), font: 'Times New Roman' })
+                        ],
+                        spacing: { after: 200 }
+                    }),
+                    new Paragraph({
+                        children: [
+                            new TextRun({ text: 'Type: ', bold: true, font: 'Times New Roman' }),
+                            new TextRun({ text: incident.detection, font: 'Times New Roman' })
+                        ],
+                        spacing: { after: 200 }
+                    }),
+                    new Paragraph({
+                        children: [
+                            new TextRun({ text: 'URL: ', bold: true, font: 'Times New Roman' }),
+                            new TextRun({ text: insertSoftBreaks(incident.url), font: 'Times New Roman' })
+                        ],
+                        spacing: { after: 200 }
+                    }),
+                    new Paragraph({
+                        children: [
+                            new TextRun({ text: 'Description: ', bold: true, font: 'Times New Roman' }),
+                            new TextRun({ text: insertSoftBreaks(incident.description || 'N/A'), font: 'Times New Roman' })
+                        ],
+                        spacing: { after: 200 }
+                    }),
+                    new Paragraph({
+                        children: [
+                            new TextRun({ text: 'Captured: ', bold: true, font: 'Times New Roman' }),
+                            new TextRun({ text: incident.timestamp, font: 'Times New Roman' })
+                        ],
+                        spacing: { after: 200 }
+                    }),
+                    new Paragraph({
+                        children: [
+                            new TextRun({ text: 'India Time: ', bold: true, font: 'Times New Roman' }),
+                            new TextRun({ text: incident.date, font: 'Times New Roman' })
+                        ],
+                        spacing: { after: 400 }
+                    })
+                ];
+                
+                // Add image if available
                 if (incident.image) {
                     try {
-                        const imgProps = pdf.getImageProperties(incident.image);
-                        const pdfWidth = pdf.internal.pageSize.getWidth();
-                        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-                        pdf.addImage(incident.image, 'PNG', 0, 0, pdfWidth, pdfHeight);
-                        pdf.setFontSize(20);
-                        pdf.text(`INCIDENT REPORT`, 20, pdfHeight + 20);
-                        pdf.setFontSize(12);
-                        pdf.text(`Platform: ${incident.platform.toUpperCase()}`, 20, pdfHeight + 40);
-                        pdf.text(`Type: ${incident.detection}`, 20, pdfHeight + 50);
-                        pdf.text(`URL: ${incident.url}`, 20, pdfHeight + 60);
-                        pdf.text(`Description: ${incident.description}`, 20, pdfHeight + 75);
-                        pdf.text(`Captured: ${incident.timestamp}`, 20, pdfHeight + 95);
-                        pdf.text(`India Time: ${incident.date}`, 20, pdfHeight + 105);
+                        // Convert base64 to binary
+                        const base64Data = incident.image.replace(/^data:image\/\w+;base64,/, '');
+                        const binaryString = window.atob(base64Data);
+                        const bytes = new Uint8Array(binaryString.length);
+                        for (let i = 0; i < binaryString.length; i++) {
+                            bytes[i] = binaryString.charCodeAt(i);
+                        }
+                        
+                        children.push(
+                            new Paragraph({
+                                children: [
+                                    new ImageRun({
+                                        data: bytes,
+                                        transformation: {
+                                            width: 550,
+                                            height: 400
+                                        },
+                                        type: 'png'
+                                    })
+                                ],
+                                alignment: AlignmentType.CENTER
+                            })
+                        );
                     } catch (imgError) {
-                        console.warn('Image add failed, adding text only', imgError);
-                        pdf.setFontSize(20);
-                        pdf.text(`INCIDENT REPORT`, 20, 25);
-                        pdf.setFontSize(12);
-                        pdf.text(`Platform: ${incident.platform.toUpperCase()}`, 20, 40);
-                        pdf.text(`Type: ${incident.detection}`, 20, 50);
-                        pdf.text(`URL: ${incident.url}`, 20, 60);
-                        pdf.text(`Description: ${incident.description}`, 20, 75);
-                        pdf.text(`Captured: ${incident.timestamp}`, 20, 95);
-                        pdf.text(`India Time: ${incident.date}`, 20, 105);
+                        console.warn('Could not add image to DOCX:', imgError);
                     }
-                } else {
-                    pdf.setFontSize(20);
-                    pdf.text(`INCIDENT REPORT`, 20, 25);
-                    pdf.setFontSize(12);
-                    pdf.text(`Platform: ${incident.platform.toUpperCase()}`, 20, 40);
-                    pdf.text(`Type: ${incident.detection}`, 20, 50);
-                    pdf.text(`URL: ${incident.url}`, 20, 60);
-                    pdf.text(`Description: ${incident.description}`, 20, 75);
-                    pdf.text(`Captured: ${incident.timestamp}`, 20, 95);
-                    pdf.text(`India Time: ${incident.date}`, 20, 105);
                 }
-                pdf.save(`incident_${incident.platform}_${id}.pdf`);
-                showToast('Exported as PDF!', 'success');
+                
+                const doc = new Document({
+                    sections: [{
+                        properties: {},
+                        children: children
+                    }]
+                });
+                
+                const blob = await Packer.toBlob(doc);
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `incident_${incident.platform}_${id}.docx`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                showToast('Exported as DOCX!', 'success');
             } catch (error) {
-                console.error('Error exporting PDF:', error);
-                showToast(`PDF export error: ${error.message}`, 'error');
+                console.error('Error exporting DOCX:', error);
+                showToast(`DOCX export error: ${error.message}`, 'error');
+            }
+        }
+
+        async function exportCurrentEvidenceDocx() {
+            try {
+                if (!currentEvidence) throw new Error('No captured evidence found');
+                if (typeof docx === 'undefined') throw new Error('DOCX library failed to load. Please refresh and try again.');
+
+                const { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, Packer, ImageRun } = docx;
+
+                const timestampSafe = (currentEvidence.timestamp || new Date().toISOString()).replace(/[:.]/g, '-');
+                const filename = `evidence_${currentEvidence.platform}_${timestampSafe}.docx`;
+
+                const children = [
+                    new Paragraph({
+                        children: [
+                            new TextRun({
+                                text: 'INCIDENT REPORT',
+                                bold: true,
+                                color: '000000',
+                                size: 32,
+                                font: 'Times New Roman'
+                            })
+                        ],
+                        alignment: AlignmentType.CENTER,
+                        spacing: { after: 420 }
+                    }),
+                    new Paragraph({
+                        children: [
+                            new TextRun({ text: 'Platform: ', bold: true, font: 'Times New Roman' }),
+                            new TextRun({ text: currentEvidence.platform.toUpperCase(), font: 'Times New Roman' })
+                        ],
+                        spacing: { after: 200 }
+                    }),
+                    new Paragraph({
+                        children: [
+                            new TextRun({ text: 'Type: ', bold: true, font: 'Times New Roman' }),
+                            new TextRun({ text: currentEvidence.detection || 'N/A', font: 'Times New Roman' })
+                        ],
+                        spacing: { after: 200 }
+                    }),
+                    new Paragraph({
+                        children: [
+                            new TextRun({ text: 'URL: ', bold: true, font: 'Times New Roman' }),
+                            new TextRun({ text: insertSoftBreaks(currentEvidence.url || ''), font: 'Times New Roman' })
+                        ],
+                        spacing: { after: 200 }
+                    }),
+                    new Paragraph({
+                        children: [
+                            new TextRun({ text: 'Description: ', bold: true, font: 'Times New Roman' }),
+                            new TextRun({ text: insertSoftBreaks(currentEvidence.description || 'N/A'), font: 'Times New Roman' })
+                        ],
+                        spacing: { after: 200 }
+                    }),
+                    new Paragraph({
+                        children: [
+                            new TextRun({ text: 'Captured: ', bold: true, font: 'Times New Roman' }),
+                            new TextRun({ text: currentEvidence.timestamp || '', font: 'Times New Roman' })
+                        ],
+                        spacing: { after: 400 }
+                    })
+                ];
+
+                // Embed image from the report canvas
+                try {
+                    const imageDataUrl = currentEvidence.canvas.toDataURL('image/png');
+                    const base64Data = imageDataUrl.replace(/^data:image\/\w+;base64,/, '');
+                    const binaryString = window.atob(base64Data);
+                    const bytes = new Uint8Array(binaryString.length);
+                    for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+
+                    children.push(
+                        new Paragraph({
+                            children: [
+                                new ImageRun({
+                                    data: bytes,
+                                    transformation: { width: 550, height: 400 },
+                                    type: 'png'
+                                })
+                            ],
+                            alignment: AlignmentType.CENTER
+                        })
+                    );
+                } catch (imgError) {
+                    console.warn('Could not embed image in DOCX:', imgError);
+                }
+
+                const doc = new Document({ sections: [{ properties: {}, children }] });
+                const blob = await Packer.toBlob(doc);
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+
+                showToast('Exported DOCX report!', 'success');
+            } catch (error) {
+                console.error('Error exporting DOCX:', error);
+                showToast(`DOCX export error: ${error.message}`, 'error');
             }
         }
         
@@ -1031,7 +1409,7 @@
                         <div class="incident-header">
                             <div>
                                 <div class="incident-platform">
-                                    <i class="fab fa-${item.platform}"></i>
+                                    ${platformIconOnlyHtml(item.platform)}
                                     ${item.platform.toUpperCase()}
                                 </div>
                                 <h4>${item.description.substring(0, 60)}${item.description.length > 60 ? '...' : ''}</h4>
@@ -1153,23 +1531,9 @@
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0);
                     
-                    // Add evidence overlay
+                    // Keep screenshot as-is (no metadata overlay on image)
                     const timestamp = new Date().toISOString();
                     const detection = detectPlatform(url);
-                    
-                    ctx.fillStyle = 'rgba(0,0,0,0.95)';
-                    ctx.fillRect(30, 30, canvas.width - 60, 140);
-                    
-                    ctx.fillStyle = 'white';
-                    ctx.font = 'bold 24px -apple-system, sans-serif';
-                    ctx.textAlign = 'left';
-                    ctx.fillText(`INCIDENT REPORT - ${new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}`, 50, 65);
-                    
-                    ctx.font = '18px monospace';
-                    ctx.fillText(`Platform: ${detection.platform.toUpperCase()}`, 50, 95);
-                    ctx.fillText(`URL: ${url}`, 50, 115);
-                    ctx.fillText(`Captured: ${timestamp}`, 50, 135);
-                    ctx.fillText(`Description: ${description}`, 50, 155);
                     
                     currentEvidence = {
                         canvas: canvas,
@@ -1194,7 +1558,7 @@
                         platform: detection.platform,
                         detection: detection.type,
                         date: new Date().toLocaleString('en-US', { 
-                            timeZone: 'Asia/Kola',
+                            timeZone: 'Asia/Kolkata',
                             year: 'numeric',
                             month: 'short',
                             day: 'numeric',
@@ -1222,42 +1586,12 @@
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('./sw.js')
                     .then(function(registration) {
-                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                        console.log('ServiceWorker registered:', registration.scope);
                     })
                     .catch(function(error) {
-                        console.log('ServiceWorker registration failed: ', error);
+                        console.log('ServiceWorker registration failed:', error);
                     });
             }
-            
-            // PWA Install Prompt
-            let deferredPrompt;
-            window.addEventListener('beforeinstallprompt', function(e) {
-                e.preventDefault();
-                deferredPrompt = e;
-                
-                // Show install button or banner
-                const installBtn = document.createElement('button');
-                installBtn.innerHTML = '<i class="fas fa-download"></i> Install App';
-                installBtn.className = 'btn btn-info';
-                installBtn.style.position = 'fixed';
-                installBtn.style.bottom = '20px';
-                installBtn.style.right = '20px';
-                installBtn.style.zIndex = '9999';
-                installBtn.onclick = function() {
-                    deferredPrompt.prompt();
-                    deferredPrompt.userChoice.then(function(choiceResult) {
-                        if (choiceResult.outcome === 'accepted') {
-                            console.log('User accepted the A2HS prompt');
-                            showToast('App installed successfully!', 'success');
-                        } else {
-                            console.log('User dismissed the A2HS prompt');
-                        }
-                        deferredPrompt = null;
-                        document.body.removeChild(installBtn);
-                    });
-                };
-                document.body.appendChild(installBtn);
-            });
         });
         
         function clearAll() {

@@ -1587,6 +1587,44 @@
                 navigator.serviceWorker.register('./sw.js')
                     .then(function(registration) {
                         console.log('ServiceWorker registered:', registration.scope);
+                        
+                        // PWA Installation Prompt for Android
+                        let deferredPrompt;
+                        window.addEventListener('beforeinstallprompt', function(e) {
+                            e.preventDefault();
+                            deferredPrompt = e;
+                            
+                            // Show install button for Android
+                            setTimeout(function() {
+                                if (deferredPrompt && !localStorage.getItem('pwa-installed')) {
+                                    showInstallPrompt();
+                                }
+                            }, 3000);
+                        });
+                        
+                        function showInstallPrompt() {
+                            const installBtn = document.createElement('div');
+                            installBtn.innerHTML = `
+                                <div style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
+                                            background: linear-gradient(135deg, #667eea, #764ba2); color: white; 
+                                            padding: 15px 25px; border-radius: 50px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                                            z-index: 10000; cursor: pointer; font-weight: bold; animation: pulse 2s infinite;">
+                                    📱 Install App
+                                </div>
+                            `;
+                            installBtn.onclick = function() {
+                                deferredPrompt.prompt();
+                                deferredPrompt.userChoice.then(function(choiceResult) {
+                                    if (choiceResult.outcome === 'accepted') {
+                                        localStorage.setItem('pwa-installed', 'true');
+                                        console.log('User accepted the install prompt');
+                                    }
+                                    deferredPrompt = null;
+                                    document.body.removeChild(installBtn);
+                                });
+                            };
+                            document.body.appendChild(installBtn);
+                        }
                     })
                     .catch(function(error) {
                         console.log('ServiceWorker registration failed:', error);
